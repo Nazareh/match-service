@@ -8,23 +8,19 @@ import com.turminaz.matchservice.dto.TeamDto;
 import com.turminaz.matchservice.mappers.MatchMapper;
 import com.turminaz.matchservice.mappers.MatchMapperImpl;
 import com.turminaz.matchservice.repository.MatchRepository;
-import org.jeasy.random.EasyRandom;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.BeanUtils;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
-import static java.util.Optional.*;
 import static java.util.Optional.empty;
+import static java.util.Optional.ofNullable;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,6 +32,9 @@ public class MatchServiceTest {
 
     @Mock
     MatchRepository matchRepository;
+
+    @Mock
+    EmailService emailService;
 
     MatchMapper matchMapper = new MatchMapperImpl();
 
@@ -49,25 +48,29 @@ public class MatchServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        sut = new MatchService(matchRepository, MatchMapper.INSTANCE);
-
+        sut = new MatchService(matchRepository, MatchMapper.INSTANCE,emailService);
         matchDto = buildcopyMatchDto();
+
+        given(matchRepository.save(any()))
+                .willAnswer( invocation -> invocation.getArgument(0));
     }
 
     @AfterEach
     void tearDown() {
-        Mockito.reset(matchRepository);
+        Mockito.reset(matchRepository, emailService);
     }
 
     @Test
-    void addMatch_shouldSaveToDbAndPublishMessage() {
+    void addMatch_shouldSaveToDbAndSendEmail() {
         sut.addMatch(matchDto);
 
         verify(matchRepository).save(matchCaptor.capture());
         verify(matchRepository).findByCourtAndStart(matchDto.getCourt(), matchDto.getStart());
         verifyNoMoreInteractions(matchRepository);
+        verify(emailService).sendSimpleMessage(any(),anyString(), anyString());
+        verifyNoMoreInteractions(emailService);
         assertThat(matchCaptor.getValue())
-                .usingRecursiveComparison().ignoringFields("id")
+                .usingRecursiveComparison().ignoringFields("id","createdOn")
                 .isEqualTo(matchDto);
     }
 
@@ -77,6 +80,7 @@ public class MatchServiceTest {
         given(matchRepository.findByCourtAndStart(anyInt(), any(Instant.class)))
                 .willReturn(empty(), ofNullable(matchMapper.toEntity(matchDto)));
 
+
         //when
         sut.addMatch(matchDto);
         sut.addMatch(matchDto);
@@ -85,8 +89,10 @@ public class MatchServiceTest {
         verify(matchRepository).save(matchCaptor.capture());
         verify(matchRepository, times(2)).findByCourtAndStart(matchDto.getCourt(), matchDto.getStart());
         verifyNoMoreInteractions(matchRepository);
+        verify(emailService).sendSimpleMessage(any(), anyString(), anyString());
+        verifyNoMoreInteractions(emailService);
         assertThat(matchCaptor.getValue())
-                .usingRecursiveComparison().ignoringFields("id")
+                .usingRecursiveComparison().ignoringFields("id","createdOn")
                 .isEqualTo(matchDto);
     }
 
@@ -124,16 +130,20 @@ public class MatchServiceTest {
         verify(matchRepository, times(inconsistentObjects.size()))
                 .findByCourtAndStart(matchDto.getCourt(), matchDto.getStart());
         verifyNoMoreInteractions(matchRepository);
+        verify(emailService, times(5)).sendSimpleMessage(any(),anyString(), anyString());
+        verifyNoMoreInteractions(emailService);
     }
 
     @Test
     void addMatch_shouldRaiseErrorOnDuplicatePlayers() {
         matchDto.getTeam1().setPlayer2(matchDto.getTeam1().getPlayer1());
 
-        assertThatThrownBy(() -> sut.addMatch(matchDto)).isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("duplicate element:");
+        assertThatThrownBy(() -> sut.addMatch(matchDto)).isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("The match doesnt have four distinct players");
 
         verifyNoMoreInteractions(matchRepository);
+        verify(emailService).sendSimpleMessage(any(),anyString(), anyString());
+        verifyNoMoreInteractions(emailService);
     }
 
     private MatchDto buildcopyMatchDto() {

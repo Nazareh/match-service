@@ -1,0 +1,19 @@
+app:
+  notifications:
+    email:
+      send-to: nazarehturmina@gmail.com
+
+spring:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: nazarehturmina@gmail.com
+    password: ${SMTP_PASSWORD}
+    properties:
+      "[.mail.smtp.auth]": true
+      "[mail.smtp.starttls.enable]": true
+  data:
+    mongodb:
+      version: 4.0.21
+      database: test
+      port: 27017

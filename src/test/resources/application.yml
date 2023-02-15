@@ -1,0 +1,14 @@
+app:
+  notifications:
+    email:
+      send-to: test@gmail.com
+
+spring:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: test@gmail.com
+    password: 1234
+    properties:
+      "[.mail.smtp.auth]": true
+      "[mail.smtp.starttls.enable]": true
