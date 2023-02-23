@@ -13,5 +13,4 @@ public interface MatchMapper {
 
     Match toEntity(MatchDto dto);
 
-    MatchDto clone(MatchDto dto);
 }

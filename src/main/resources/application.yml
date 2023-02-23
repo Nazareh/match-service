@@ -4,16 +4,14 @@ app:
       send-to: nazarehturmina@gmail.com
 
 spring:
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: nazarehturmina@gmail.com
-    password: ${SMTP_PASSWORD}
-    properties:
-      "[.mail.smtp.auth]": true
-      "[mail.smtp.starttls.enable]": true
   data:
     mongodb:
-      version: 4.0.21
-      database: test
-      port: 27017
+#      version: 4.0.21
+      database: match-service
+#      port: 27017
+      uri: mongodb+srv://match-service:${MONGODB_PASSWORD}@prod.h0ytr1d.mongodb.net/?retryWrites=true&w=majority
+logging:
+  level:
+    org:
+      springframework:
+        cloud=DEBUG:

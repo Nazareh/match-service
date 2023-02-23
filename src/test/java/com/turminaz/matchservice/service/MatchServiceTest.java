@@ -6,7 +6,6 @@ import com.turminaz.matchservice.dto.MatchResultDto;
 import com.turminaz.matchservice.dto.PlayerDto;
 import com.turminaz.matchservice.dto.TeamDto;
 import com.turminaz.matchservice.mappers.MatchMapper;
-import com.turminaz.matchservice.mappers.MatchMapperImpl;
 import com.turminaz.matchservice.repository.MatchRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 
 import static java.util.Optional.empty;
@@ -33,11 +33,6 @@ public class MatchServiceTest {
     @Mock
     MatchRepository matchRepository;
 
-    @Mock
-    EmailService emailService;
-
-    MatchMapper matchMapper = new MatchMapperImpl();
-
     MatchService sut;
 
     MatchDto matchDto;
@@ -48,7 +43,7 @@ public class MatchServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        sut = new MatchService(matchRepository, MatchMapper.INSTANCE,emailService);
+        sut = new MatchService(matchRepository, MatchMapper.INSTANCE);
         matchDto = buildcopyMatchDto();
 
         given(matchRepository.save(any()))
@@ -57,7 +52,7 @@ public class MatchServiceTest {
 
     @AfterEach
     void tearDown() {
-        Mockito.reset(matchRepository, emailService);
+        Mockito.reset(matchRepository);
     }
 
     @Test
@@ -67,8 +62,6 @@ public class MatchServiceTest {
         verify(matchRepository).save(matchCaptor.capture());
         verify(matchRepository).findByCourtAndStart(matchDto.getCourt(), matchDto.getStart());
         verifyNoMoreInteractions(matchRepository);
-        verify(emailService).sendSimpleMessage(any(),anyString(), anyString());
-        verifyNoMoreInteractions(emailService);
         assertThat(matchCaptor.getValue())
                 .usingRecursiveComparison().ignoringFields("id","createdOn")
                 .isEqualTo(matchDto);
@@ -78,7 +71,7 @@ public class MatchServiceTest {
     void addMatch_shouldHandleDuplicates() {
         //given
         given(matchRepository.findByCourtAndStart(anyInt(), any(Instant.class)))
-                .willReturn(empty(), ofNullable(matchMapper.toEntity(matchDto)));
+                .willReturn(empty(), ofNullable(MatchMapper.INSTANCE.toEntity(matchDto)));
 
 
         //when
@@ -89,8 +82,6 @@ public class MatchServiceTest {
         verify(matchRepository).save(matchCaptor.capture());
         verify(matchRepository, times(2)).findByCourtAndStart(matchDto.getCourt(), matchDto.getStart());
         verifyNoMoreInteractions(matchRepository);
-        verify(emailService).sendSimpleMessage(any(), anyString(), anyString());
-        verifyNoMoreInteractions(emailService);
         assertThat(matchCaptor.getValue())
                 .usingRecursiveComparison().ignoringFields("id","createdOn")
                 .isEqualTo(matchDto);
@@ -99,16 +90,16 @@ public class MatchServiceTest {
     @Test
     void addMatch_shouldRaiseInconsistency() {
         //given
-        var winInconsistency = buildcopyMatchDto();
+        MatchDto winInconsistency = buildcopyMatchDto();
         winInconsistency.getMatchResult().setWins(matchDto.getMatchResult().getWins() + 1);
 
-        var team1playerInconsistency = buildcopyMatchDto();
+        MatchDto team1playerInconsistency = buildcopyMatchDto();
         team1playerInconsistency.getTeam1().getPlayer1().setId(matchDto.getTeam1().getPlayer1().getId() + "abc");
 
-        var team2playerInconsistency = buildcopyMatchDto();
+        MatchDto team2playerInconsistency = buildcopyMatchDto();
         team2playerInconsistency.getTeam2().getPlayer2().setId(matchDto.getTeam2().getPlayer2().getId() + "abc");
 
-        var inconsistentObjects = List.of(
+        List<MatchDto> inconsistentObjects = Arrays.asList(
                 winInconsistency,
                 buildcopyMatchDto().setEnd(matchDto.getEnd().plus(Duration.ofHours(1))),
                 buildcopyMatchDto().setRated(!matchDto.isRated()),
@@ -117,7 +108,7 @@ public class MatchServiceTest {
         );
 
         given(matchRepository.findByCourtAndStart(anyInt(), any(Instant.class)))
-                .willReturn(ofNullable(matchMapper.toEntity(matchDto)));
+                .willReturn(ofNullable(MatchMapper.INSTANCE.toEntity(matchDto)));
 
         //when
         inconsistentObjects.forEach((inconsistentMatch) -> {
@@ -130,8 +121,6 @@ public class MatchServiceTest {
         verify(matchRepository, times(inconsistentObjects.size()))
                 .findByCourtAndStart(matchDto.getCourt(), matchDto.getStart());
         verifyNoMoreInteractions(matchRepository);
-        verify(emailService, times(5)).sendSimpleMessage(any(),anyString(), anyString());
-        verifyNoMoreInteractions(emailService);
     }
 
     @Test
@@ -142,8 +131,6 @@ public class MatchServiceTest {
                 .hasMessageContaining("The match doesnt have four distinct players");
 
         verifyNoMoreInteractions(matchRepository);
-        verify(emailService).sendSimpleMessage(any(),anyString(), anyString());
-        verifyNoMoreInteractions(emailService);
     }
 
     private MatchDto buildcopyMatchDto() {
