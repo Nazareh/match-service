@@ -56,14 +56,17 @@ public class MatchServiceTest {
 
     @Test
     void addMatch_shouldSaveToDbAndSendEmail() {
-        sut.addMatch(matchDto);
+       var savedMatch = sut.addMatch(matchDto);
 
         verify(matchRepository).save(matchCaptor.capture());
-        verify(matchRepository).findByCourtAndDateTime(matchDto.getCourt(), matchDto.getDateTime());
+        verify(matchRepository).findByCourtAndDateTime(matchDto.getCourt(), Instant.parse(matchDto.getDateTime()));
         verifyNoMoreInteractions(matchRepository);
+
         assertThat(matchCaptor.getValue())
-                .usingRecursiveComparison().ignoringFields("id","createdOn")
+                .usingRecursiveComparison().ignoringFields("id","createdOn","dateTime")
                 .isEqualTo(matchDto);
+
+        assertThat(savedMatch.getDateTime()).isEqualTo(matchCaptor.getValue().getDateTime().toString());
     }
 
     @Test
@@ -75,14 +78,14 @@ public class MatchServiceTest {
 
         //when
         sut.addMatch(matchDto);
-        sut.addMatch(matchDto);
+        assertThatThrownBy(() -> sut.addMatch(matchDto));
 
         //then
         verify(matchRepository).save(matchCaptor.capture());
-        verify(matchRepository, times(2)).findByCourtAndDateTime(matchDto.getCourt(), matchDto.getDateTime());
+        verify(matchRepository, times(2)).findByCourtAndDateTime(matchDto.getCourt(), Instant.parse(matchDto.getDateTime()));
         verifyNoMoreInteractions(matchRepository);
         assertThat(matchCaptor.getValue())
-                .usingRecursiveComparison().ignoringFields("id","createdOn")
+                .usingRecursiveComparison().ignoringFields("id","createdOn", "dateTime")
                 .isEqualTo(matchDto);
     }
 
@@ -117,7 +120,7 @@ public class MatchServiceTest {
 
         //then
         verify(matchRepository, times(inconsistentObjects.size()))
-                .findByCourtAndDateTime(matchDto.getCourt(), matchDto.getDateTime());
+                .findByCourtAndDateTime(matchDto.getCourt(),Instant.parse(matchDto.getDateTime()));
         verifyNoMoreInteractions(matchRepository);
     }
 
@@ -133,7 +136,7 @@ public class MatchServiceTest {
 
     private MatchDto buildcopyMatchDto() {
         return new MatchDto().setCourt(3)
-                .setDateTime(Instant.parse("2023-02-01T20:30:00Z"))
+                .setDateTime("2023-02-01T20:30:00Z")
                 .setTeam1(new TeamDto()
                         .setPlayer1(new PlayerDto("Naz"))
                         .setPlayer2(new PlayerDto("Rachel")))

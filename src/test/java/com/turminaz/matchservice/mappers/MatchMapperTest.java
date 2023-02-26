@@ -19,7 +19,7 @@ class MatchMapperTest {
         Match entity = MatchMapper.INSTANCE.toEntity(dto);
 
         assertThat(entity)
-                .usingRecursiveComparison().ignoringFields("id", "createdOn")
+                .usingRecursiveComparison().ignoringFields("id", "createdOn", "dateTime")
                 .isEqualTo(dto);
 
         assertThat(entity.getId()).isNull();
@@ -38,6 +38,7 @@ class MatchMapperTest {
 
         assertThat(dto)
                 .usingRecursiveComparison()
+                .ignoringFields("dateTime")
                 .isEqualTo(entity);
 
     }

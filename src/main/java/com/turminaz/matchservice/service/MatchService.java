@@ -8,8 +8,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -20,21 +20,29 @@ public class MatchService {
     private final MatchMapper matchMapper;
 
     public MatchDto addMatch(MatchDto matchDto) {
-
         verifyFourDistinctPlayers(matchDto);
 
-        Match newMatch = matchMapper.toEntity(matchDto);
+        var matchDateTime = Instant.parse(matchDto.getDateTime());
 
-        Optional<Match> existingMatch = matchRepository
-                .findByCourtAndDateTime(matchDto.getCourt(), matchDto.getDateTime());
-        existingMatch
-                .ifPresent(previousMatch -> checkInconsistencies(previousMatch, newMatch));
+        var newMatch = matchMapper
+                .toEntity(matchDto)
+                .setDateTime(matchDateTime);
 
-        return matchMapper.toDto(existingMatch.orElseGet(() -> matchRepository.save(newMatch)));
+        var existingMatch = matchRepository
+                .findByCourtAndDateTime(matchDto.getCourt(), matchDateTime);
+
+        existingMatch.ifPresent(previousMatch -> checkInconsistencies(previousMatch, newMatch));
+
+        var match =  existingMatch.orElseGet(() -> matchRepository.save(newMatch));
+
+        var dto = matchMapper.toDto(match);
+        dto.setDateTime(match.getDateTime().toString());
+
+        return dto;
+
     }
 
     private void verifyFourDistinctPlayers(MatchDto matchDto) {
-
         Set<String> players = new HashSet<>();
         players.add(matchDto.getTeam1().getPlayer1().getId());
         players.add(matchDto.getTeam1().getPlayer2().getId());

@@ -30,7 +30,7 @@ class LambdaTest {
     private ArgumentCaptor<MatchDto> captor;
 
     @Test
-    void pubSubFunction_shouldDecodeAndDeserialize() throws JsonProcessingException {
+    void lambdaFunction_callService() {
         //given
         MatchDto matchDto = new EasyRandom().nextObject(MatchDto.class);
 
@@ -38,7 +38,7 @@ class LambdaTest {
         Function<MatchDto, MatchDto> function = sut.lambdaFunction();
         function.apply(matchDto);
 
-       //then
+        //then
         verify(matchService).addMatch(captor.capture());
         assertThat(captor.getValue()).usingRecursiveComparison().isEqualTo(matchDto);
 
