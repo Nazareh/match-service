@@ -10,5 +10,5 @@ import java.util.Optional;
 
 public interface MatchRepository extends MongoRepository<Match, ObjectId> {
 
-    Optional<Match> findByCourtAndStart(Integer court, Instant start);
+    Optional<Match> findByCourtAndDateTime(Integer court, Instant start);
 }

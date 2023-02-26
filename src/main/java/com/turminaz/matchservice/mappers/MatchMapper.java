@@ -13,4 +13,5 @@ public interface MatchMapper {
 
     Match toEntity(MatchDto dto);
 
+    MatchDto toDto(Match entity);
 }

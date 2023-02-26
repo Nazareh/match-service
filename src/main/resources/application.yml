@@ -1,8 +1,3 @@
-app:
-  notifications:
-    email:
-      send-to: nazarehturmina@gmail.com
-
 spring:
   data:
     mongodb:

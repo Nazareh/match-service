@@ -14,7 +14,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
@@ -60,7 +59,7 @@ public class MatchServiceTest {
         sut.addMatch(matchDto);
 
         verify(matchRepository).save(matchCaptor.capture());
-        verify(matchRepository).findByCourtAndStart(matchDto.getCourt(), matchDto.getStart());
+        verify(matchRepository).findByCourtAndDateTime(matchDto.getCourt(), matchDto.getDateTime());
         verifyNoMoreInteractions(matchRepository);
         assertThat(matchCaptor.getValue())
                 .usingRecursiveComparison().ignoringFields("id","createdOn")
@@ -70,7 +69,7 @@ public class MatchServiceTest {
     @Test
     void addMatch_shouldHandleDuplicates() {
         //given
-        given(matchRepository.findByCourtAndStart(anyInt(), any(Instant.class)))
+        given(matchRepository.findByCourtAndDateTime(anyInt(), any(Instant.class)))
                 .willReturn(empty(), ofNullable(MatchMapper.INSTANCE.toEntity(matchDto)));
 
 
@@ -80,7 +79,7 @@ public class MatchServiceTest {
 
         //then
         verify(matchRepository).save(matchCaptor.capture());
-        verify(matchRepository, times(2)).findByCourtAndStart(matchDto.getCourt(), matchDto.getStart());
+        verify(matchRepository, times(2)).findByCourtAndDateTime(matchDto.getCourt(), matchDto.getDateTime());
         verifyNoMoreInteractions(matchRepository);
         assertThat(matchCaptor.getValue())
                 .usingRecursiveComparison().ignoringFields("id","createdOn")
@@ -101,13 +100,12 @@ public class MatchServiceTest {
 
         List<MatchDto> inconsistentObjects = Arrays.asList(
                 winInconsistency,
-                buildcopyMatchDto().setEnd(matchDto.getEnd().plus(Duration.ofHours(1))),
                 buildcopyMatchDto().setRated(!matchDto.isRated()),
                 team1playerInconsistency,
                 team2playerInconsistency
         );
 
-        given(matchRepository.findByCourtAndStart(anyInt(), any(Instant.class)))
+        given(matchRepository.findByCourtAndDateTime(anyInt(), any(Instant.class)))
                 .willReturn(ofNullable(MatchMapper.INSTANCE.toEntity(matchDto)));
 
         //when
@@ -119,7 +117,7 @@ public class MatchServiceTest {
 
         //then
         verify(matchRepository, times(inconsistentObjects.size()))
-                .findByCourtAndStart(matchDto.getCourt(), matchDto.getStart());
+                .findByCourtAndDateTime(matchDto.getCourt(), matchDto.getDateTime());
         verifyNoMoreInteractions(matchRepository);
     }
 
@@ -135,8 +133,7 @@ public class MatchServiceTest {
 
     private MatchDto buildcopyMatchDto() {
         return new MatchDto().setCourt(3)
-                .setStart(Instant.parse("2023-02-01T20:30:00Z"))
-                .setEnd(Instant.parse("2023-02-01T22:00:00Z"))
+                .setDateTime(Instant.parse("2023-02-01T20:30:00Z"))
                 .setTeam1(new TeamDto()
                         .setPlayer1(new PlayerDto("Naz"))
                         .setPlayer2(new PlayerDto("Rachel")))

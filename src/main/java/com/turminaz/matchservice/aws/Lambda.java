@@ -14,10 +14,7 @@ public class Lambda {
     private final MatchService matchService;
 
     @Bean
-    public Function<MatchDto, String> lambdaFunction() {
-        return matchDto -> {
-            matchService.addMatch(matchDto);
-            return "Success";
-        };
+    public Function<MatchDto, MatchDto> lambdaFunction() {
+        return matchService::addMatch;
     }
 }

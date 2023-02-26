@@ -22,8 +22,7 @@ public class Match {
     @EqualsAndHashCode.Exclude
     private ObjectId id;
     private Integer court;
-    private Instant start;
-    private Instant end;
+    private Instant dateTime;
     private Team team1;
 
     private Team team2;
@@ -33,5 +32,6 @@ public class Match {
     private boolean rated;
 
     @CreatedDate
+    @EqualsAndHashCode.Exclude
     private Instant createdOn;
 }
