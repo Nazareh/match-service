@@ -1,3 +1,7 @@
+app:
+  email:
+    sender: nazarehturmina@gmail.com
+    receiver: nazarehturmina@gmail.com
 spring:
   data:
     mongodb:
@@ -5,6 +9,15 @@ spring:
       database: match-service
 #      port: 27017
       uri: mongodb+srv://match-service:${MONGODB_PASSWORD}@prod.h0ytr1d.mongodb.net/?retryWrites=true&w=majority
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: nazarehturmina@gmail.com
+    password: ${GOOGLE_APP_PASSWORD}
+    properties:
+      "[.mail.smtp.auth]": true
+      "[mail.smtp.starttls.enable]": true
+
 logging:
   level:
     org:

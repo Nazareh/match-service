@@ -1,11 +1,11 @@
 package com.turminaz.matchservice.service;
 
-import com.turminaz.matchservice.domain.model.Match;
 import com.turminaz.matchservice.dto.MatchDto;
 import com.turminaz.matchservice.mappers.MatchMapper;
 import com.turminaz.matchservice.repository.MatchRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -18,25 +18,24 @@ import java.util.Set;
 public class MatchService {
     private final MatchRepository matchRepository;
     private final MatchMapper matchMapper;
+    private final EmailService emailService;
+
+    @Value("${app.email.receiver}")
+    private String to;
+
 
     public MatchDto addMatch(MatchDto matchDto) {
         verifyFourDistinctPlayers(matchDto);
 
-        var matchDateTime = Instant.parse(matchDto.getDateTime());
-
         var newMatch = matchMapper
                 .toEntity(matchDto)
-                .setDateTime(matchDateTime);
+                .setDateTime(Instant.parse(matchDto.getDateTime()));
 
-        var existingMatch = matchRepository
-                .findByCourtAndDateTime(matchDto.getCourt(), matchDateTime);
-
-        existingMatch.ifPresent(previousMatch -> checkInconsistencies(previousMatch, newMatch));
-
-        var match =  existingMatch.orElseGet(() -> matchRepository.save(newMatch));
-
+        var match = matchRepository.save(newMatch);
         var dto = matchMapper.toDto(match);
-        dto.setDateTime(match.getDateTime().toString());
+
+        emailService
+                .sendSimpleMessage(to, "Match Uploaded", matchMapper.toEmailBody(match));
 
         return dto;
 
@@ -49,16 +48,15 @@ public class MatchService {
         players.add(matchDto.getTeam2().getPlayer1().getId());
         players.add(matchDto.getTeam2().getPlayer2().getId());
 
-        if (players.size() != 4){
+        if (players.size() != 4) {
+            emailService
+                    .sendSimpleMessage(to,
+                            "Invalid Match Uploaded",
+                            String.format("Match doesnt have four distinct players.\n %s",
+                                    matchMapper.toEmailBody(matchDto)
+
+                            ));
             throw new RuntimeException("The match doesnt have four distinct players");
         }
-
-    }
-
-    private void checkInconsistencies(Match o1, Match o2) {
-        if (!o1.equals(o2)) {
-            throw new RuntimeException("A match for the same start time and court already exists");
-        }
-        log.info("Match duplicated, ignoring message.");
     }
 }
